@@ -151,7 +151,24 @@ internal class LocLookup
 
     // Convenience helpers using ModelId
     public string Card(string entry) => Bilingual("cards", entry + ".title");
-    public string Monster(string entry) => Bilingual("monsters", entry + ".name");
+    public string Monster(string entry)
+    {
+        var key = entry + ".name";
+        var result = Bilingual("monsters", key);
+        // If no dedicated entry, fall back to the base segment key (e.g. DECIMILLIPEDE_SEGMENT_FRONT → DECIMILLIPEDE_SEGMENT)
+        if (result == key)
+        {
+            var lastUnderscore = entry.LastIndexOf('_');
+            if (lastUnderscore > 0)
+            {
+                var baseEntry = entry[..lastUnderscore];
+                var baseKey = baseEntry + ".name";
+                var baseResult = Bilingual("monsters", baseKey);
+                if (baseResult != baseKey) return baseResult;
+            }
+        }
+        return result;
+    }
     public string Relic(string entry) => Bilingual("relics", entry + ".title");
     public string Potion(string entry) => Bilingual("potions", entry + ".title");
     public string Power(string entry) => Bilingual("powers", entry + ".title");
