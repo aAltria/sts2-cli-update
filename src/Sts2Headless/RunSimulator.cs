@@ -371,7 +371,15 @@ public class RunSimulator
                         if (id != null)
                         {
                             var model = ModelDb.GetById<PotionModel>(new ModelId("POTION", id));
-                            if (model != null) slots[idx] = model;
+                            // Inject a mutable instance (not the canonical model — that throws
+                            // CanonicalModelException when the game reads potion.Owner) and set its
+                            // Owner, or UsePotionAction fails with "without an owner!".
+                            if (model != null)
+                            {
+                                var mutable = model.ToMutable();
+                                mutable.Owner = player;
+                                slots[idx] = mutable;
+                            }
                         }
                         idx++;
                     }

@@ -68,6 +68,10 @@ public struct Color
 
     public Color(float r, float g, float b, float a = 1f) { R = r; G = g; B = b; A = a; }
     public Color(string htmlColor) { R = 1; G = 1; B = 1; A = 1; }
+    // Godot's Color(Color, float) — recolor with a new alpha. Used by VFX helpers
+    // (e.g. Liquid Memories' discard-pile selection); missing overload throws
+    // MissingMethodException in headless (issue #72).
+    public Color(Color c, float alpha) { R = c.R; G = c.G; B = c.B; A = alpha; }
 
     public Color Lerp(Color to, float weight) => new(
         R + (to.R - R) * weight, G + (to.G - G) * weight,
