@@ -1276,8 +1276,8 @@ public class RunSimulator
             return Error("buy_card requires 'card_index'");
 
         var idx = Convert.ToInt32(args["card_index"]);
-        var allEntries = merchantRoom.GetLocalInventory().CharacterCardEntries
-            .Concat(merchantRoom.GetLocalInventory().ColorlessCardEntries).ToList();
+        var allEntries = merchantRoom.Inventory.CharacterCardEntries
+            .Concat(merchantRoom.Inventory.ColorlessCardEntries).ToList();
         if (idx < 0 || idx >= allEntries.Count)
             return Error($"Invalid card index {idx}");
 
@@ -1287,7 +1287,7 @@ public class RunSimulator
 
         try
         {
-            entry.OnTryPurchaseWrapper(merchantRoom.GetLocalInventory()).GetAwaiter().GetResult();
+            entry.OnTryPurchaseWrapper(merchantRoom.Inventory).GetAwaiter().GetResult();
             _syncCtx.Pump();
             Log($"Bought card: {entry.CreationResult?.Card?.GetType().Name ?? "?"} for {entry.Cost}g");
         }
@@ -1304,7 +1304,7 @@ public class RunSimulator
             return Error("buy_relic requires 'relic_index'");
 
         var idx = Convert.ToInt32(args["relic_index"]);
-        var entries = merchantRoom.GetLocalInventory().RelicEntries;
+        var entries = merchantRoom.Inventory.RelicEntries;
         if (idx < 0 || idx >= entries.Count) return Error($"Invalid relic index {idx}");
 
         var entry = entries[idx];
@@ -1317,7 +1317,7 @@ public class RunSimulator
             // Adroit, #80). Run the purchase on a background task and yield as soon as a
             // pending selection appears so the caller can resolve it; the background task
             // continues once the selector's TCS is fed by select_cards.
-            var inv = merchantRoom.GetLocalInventory();
+            var inv = merchantRoom.Inventory;
             var task = Task.Run(() => entry.OnTryPurchaseWrapper(inv));
             for (int i = 0; i < 100; i++)
             {
@@ -1349,7 +1349,7 @@ public class RunSimulator
             return Error("buy_potion requires 'potion_index'");
 
         var idx = Convert.ToInt32(args["potion_index"]);
-        var entries = merchantRoom.GetLocalInventory().PotionEntries;
+        var entries = merchantRoom.Inventory.PotionEntries;
         if (idx < 0 || idx >= entries.Count) return Error($"Invalid potion index {idx}");
 
         var entry = entries[idx];
@@ -1358,7 +1358,7 @@ public class RunSimulator
 
         try
         {
-            entry.OnTryPurchaseWrapper(merchantRoom.GetLocalInventory()).GetAwaiter().GetResult();
+            entry.OnTryPurchaseWrapper(merchantRoom.Inventory).GetAwaiter().GetResult();
             _syncCtx.Pump();
             Log($"Bought potion: {entry.Model.GetType().Name} for {entry.Cost}g");
         }
@@ -1376,14 +1376,14 @@ public class RunSimulator
         if (_runState?.CurrentRoom is not MerchantRoom merchantRoom)
             return Error("Not in a shop");
 
-        var removal = merchantRoom.GetLocalInventory().CardRemovalEntry;
+        var removal = merchantRoom.Inventory.CardRemovalEntry;
         if (removal == null) return Error("No card removal available");
         if (player.Gold < removal.Cost) return Error("Not enough gold");
 
         try
         {
             // Run on background thread so card selection can pause (same pattern as event options)
-            var task = Task.Run(() => removal.OnTryPurchaseWrapper(merchantRoom.GetLocalInventory()));
+            var task = Task.Run(() => removal.OnTryPurchaseWrapper(merchantRoom.Inventory));
             for (int i = 0; i < 100; i++)
             {
                 _syncCtx.Pump();
@@ -2690,7 +2690,7 @@ public class RunSimulator
 
     private Dictionary<string, object?> ShopState(MerchantRoom merchantRoom, Player player)
     {
-        var inv = merchantRoom.GetLocalInventory();
+        var inv = merchantRoom.Inventory;
         if (inv == null) { ForceToMap(); return MapSelectState(); }
 
         var cards = inv.CharacterCardEntries.Concat(inv.ColorlessCardEntries)
@@ -2755,7 +2755,7 @@ public class RunSimulator
             ["is_stocked"] = e.IsStocked,
         }).ToList();
 
-        var removal = merchantRoom.GetLocalInventory().CardRemovalEntry;
+        var removal = merchantRoom.Inventory.CardRemovalEntry;
 
         return new Dictionary<string, object?>
         {
