@@ -1022,13 +1022,11 @@ public class RunSimulator
         return DetectDecisionPoint();
     }
 
-    // STS2 build 23372702 removed CombatManager.IsPlayPhase (global) in favor of a
-    // per-player PlayerCombatState.Phase. Headless is single-player, so the local
-    // player (Players[0]) being in the Play phase is the equivalent signal.
+    // Newer STS2 builds removed PlayerCombatState.Phase / PlayerTurnPhase in favor of a
+    // simple CombatManager.Instance.IsPlayPhase property.
     private bool IsPlayPhase()
     {
-        var p = (_runState != null && _runState.Players.Count > 0) ? _runState.Players[0] : null;
-        return p?.PlayerCombatState?.Phase == MegaCrit.Sts2.Core.Combat.PlayerTurnPhase.Play;
+        return CombatManager.Instance.IsPlayPhase;
     }
 
     private Dictionary<string, object?> DoEndTurn(Player player)
@@ -2374,7 +2372,7 @@ public class RunSimulator
                     if (reward is GoldReward || reward is MegaCrit.Sts2.Core.Rewards.RelicReward
                         || reward is MegaCrit.Sts2.Core.Rewards.PotionReward)
                     {
-                        try { reward.SelectUnsynchronized().GetAwaiter().GetResult(); _syncCtx.Pump(); }
+                        try { reward.OnSelectWrapper().GetAwaiter().GetResult(); _syncCtx.Pump(); }
                         catch (Exception ex) { Log($"Auto-collect reward: {ex.Message}"); }
                     }
                     else if (reward is CardReward cr)
@@ -3735,7 +3733,7 @@ public class RunSimulator
             {
                 await CreatureCmd.Damage(ctx, play.Target!, card.DynamicVars.Damage.BaseValue,
                     MegaCrit.Sts2.Core.ValueProps.ValueProp.Move, card);
-                await PowerCmd.Apply<WeakPower>(ctx, play.Target!, card.DynamicVars["WeakPower"].BaseValue,
+                await PowerCmd.Apply<WeakPower>(play.Target!, card.DynamicVars["WeakPower"].BaseValue,
                     card.Owner.Creature, card, false);
             }
             catch (Exception ex) { Console.Error.WriteLine($"[WARN] Neutralize safe: {ex.Message}"); }
