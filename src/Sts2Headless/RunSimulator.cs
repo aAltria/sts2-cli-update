@@ -3367,15 +3367,15 @@ public class RunSimulator
         private ManualResetEventSlim? _rewardWait;
         private int _rewardChoice = -1;
 
-        // NOTE: STS2 build 23372702 changed ICardSelector.GetSelectedCardReward to return
-        // a CardRewardSelection struct { CardModel card; CardRewardAlternative alternative }.
-        // CardReward.OnSelect interprets: alternative != null → pick that alternative
-        // (Skip/Reroll); else card != null → take that card; both null → skip (no card kept).
-        public MegaCrit.Sts2.Core.TestSupport.CardRewardSelection GetSelectedCardReward(
-            IReadOnlyList<MegaCrit.Sts2.Core.Entities.Cards.CardCreationResult> options,
+        // NOTE: STS2 post-build 23372702 reverted ICardSelector.GetSelectedCardReward
+        // back to a `CardModel?` return type. Null means skip; non-null means take that card.
+        // (An earlier intermediate build used a CardRewardSelection struct { card, alternative }
+        //  here, but it has since been removed upstream.)
+        public CardModel? GetSelectedCardReward(
+            IReadOnlyList<CardCreationResult> options,
             IReadOnlyList<CardRewardAlternative> alternatives)
         {
-            if (options.Count == 0) return default;  // Skip
+            if (options.Count == 0) return null;  // Skip
 
             // Store pending and block until main loop resolves
             PendingRewardCards = options.ToList();
@@ -3390,8 +3390,8 @@ public class RunSimulator
             _rewardWait = null;
 
             if (choice >= 0 && choice < options.Count)
-                return new MegaCrit.Sts2.Core.TestSupport.CardRewardSelection { card = options[choice].Card };
-            return default;  // Skip (card=null, alternative=null)
+                return options[choice].Card;
+            return null;  // Skip
         }
 
         public bool HasPendingReward => PendingRewardCards != null && _rewardWait != null;
